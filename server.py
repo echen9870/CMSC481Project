@@ -1,19 +1,17 @@
+import hashlib
 import random
 import socket
-import time
-import argparse
+import signal
+import sys
 
-parser = argparse.ArgumentParser(description="Simple Server for N/w Delays")
-parser.add_argument('-s', '--server', type=str, default="0.0.0.0")
-parser.add_argument('-p', '--port', type=int, default=32768)
-parser.add_argument('-b', '--buffer',  type=int, default=10)
-parser.add_argument('-d', '--delay',  type=int, default=0)
-args = parser.parse_args()
+#Valid credentials
+credentials = {
+    "echen9" : "password1",
+    "peterj1" : "password2"
+}
 
-ip_addr = args.server
-port = args.port
-buffer = args.buffer
-delay = args.delay
+ip_addr = "0.0.0.0"
+port = 12345
 
 #Creates our server address
 srvr_addr = (ip_addr, port)
@@ -22,26 +20,59 @@ srvr_addr = (ip_addr, port)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.bind(srvr_addr)
 sock.listen(1)
+print("Server is setup")
 
 #Generates the challenge string needed for authentication
 def generateChallenge():
     res = "".join([chr(random.randint(ord('a'), ord('z'))) for i in range(10)])
     return res
 
+# Signal handler to catch Ctrl+C and close the server 
+def signal_handler(sig, frame):
+    print("Closing server...")
+    sock.close()
+    sys.exit(0)
+
+# Register the signal handler
+signal.signal(signal.SIGINT, signal_handler)
+
 #Actively listens for incoming connection
 while True:
   
     #Connection has been received
-    data, addr = sock.accept()
+    conn, addr = sock.accept()
     print('Connected: ',addr)
-  
-    #Sends the challenge tocket string
+    
+    #Receives username from client
+    user = conn.recv(1024).decode()
+
+    #Sends the challenge token string
     token = generateChallenge()
     print("Token: ", token)
-    if data:
-        print("Server receiving: ", data.decode())
-        response = ("%s"%(data.decode())).lower()
-        print("Server sending: ", response)
-        sent = sock.sendto(response.encode(), addr)
-        time.sleep(delay)
+    conn.sendall(token.encode())
+
+    #Receives hash from client
+    
+    res = conn.recv(1024).decode()
+    print("User: ", user)
+    print("Hash From Client:", res)
+
+    #Validate authentication
+    if user in credentials:
+        password = credentials[user]
+        hash_input = token + password
+        print("Input to be hashed:", hash_input)
+        expected_hash = hashlib.md5(hash_input.encode()).hexdigest()
+        print("Expected hash: ", expected_hash)
+        if res == expected_hash:
+            conn.sendall(b'200 SUCCESS')
+        else:
+            conn.sendall(b'400 FAIL')
+    else:
+        conn.sendall(b'400 FAIL')
+
+    #Close connection
+    conn.close()
+
+    
 

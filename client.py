@@ -1,48 +1,67 @@
 import socket
 import hashlib
+import time
 
 # Server address and port
-SERVER_ADDRESS = '127.0.0.1'
+SERVER_ADDRESS = '172.21.2.5'
 SERVER_PORT = 12345
 
-# Keyword to identify the client
-KEYWORD = "IDENTITY"
+#Get username/password function can be later implemented so user can type in username/password
+def getUsername():
+    username = "echen9"
+    return username
 
-# Predefined user credentials
-username = "user"
-password = "password"
+def getPassword():
+    password = "password1"
+    return password
 
-# Create a TCP socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+if __name__ == "__main__":
 
-try:
-    # Connect to the server
-    client_socket.connect((SERVER_ADDRESS, SERVER_PORT))
+    # Create a TCP socket
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    authenticated = False
 
-    # Send the keyword to identify the client
-    client_socket.sendall(f"{KEYWORD}: {username}".encode())
+    #Client is trying to authenticate
+    while not authenticated:
+        try:
+            # Connect to the server
+            print("Attemptiong to connect to ", SERVER_ADDRESS," ", SERVER_PORT)
+            client_socket.connect((SERVER_ADDRESS, SERVER_PORT))
 
-    # Receive the challenge token from the server
-    challenge_token = client_socket.recv(1024).decode().strip()
+            # Send the username to identify the client
+            username = getUsername()
+            client_socket.sendall(f"{username}".encode())
 
-    # Generate the response by appending the password to the challenge token and calculating the MD5 hash
-    response = hashlib.md5((challenge_token + password).encode()).hexdigest()
+            # Receive the challenge token from the server
+            challenge_token = client_socket.recv(1024).decode().strip()
 
-    # Send the response to the server
-    client_socket.sendall(response.encode())
+            # Generate the response by appending the password to the challenge token and calculating the MD5 hash
+            hashMessage = hashlib.md5((challenge_token + getPassword()).encode()).hexdigest()
 
-    # Receive the authentication result from the server
-    auth_result = client_socket.recv(1024).decode().strip()
+            # Send the response to the server
+            print("Sending response.....")
+            client_socket.sendall(hashMessage.encode())
 
-    # Display the authentication result
-    if auth_result == '200':
-        print("Authentication successful")
-    else:
-        print("Authentication failed")
+            # Receive the authentication result from the server
+            auth_result = client_socket.recv(1024).decode().strip()
 
-except Exception as e:
-    print(f"Error: {e}")
+            # Display the authentication result
+            if auth_result == '200 SUCCESS':
+                print("Authentication successful")
+                authenticated = True
+                # Loop for sending commands to the server
+                while True:
+                    clientInput = input("Type in a command (Type 'Exit' to quit):\n")
+                    if clientInput.lower() == "exit":
+                        break
+                    print("Sending command:", clientInput)
+                    client_socket.sendall(clientInput.encode())
+            else:
+                print("Authentication failed")
 
-finally:
-    # Close the socket
-    client_socket.close()
+        except Exception as e:
+            print(f"Error: {e}")
+
+        finally:
+            client_socket.close()
+
