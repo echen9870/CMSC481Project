@@ -1,16 +1,17 @@
 version: "3"
 
 networks:
+  #Client 
   net-172.21.0.0:
     ipam:
       config:
         - subnet: 172.21.0.0/24
-
+  #Router
   net-172.21.1.0:
     ipam:
       config:
         - subnet: 172.21.1.0/24
-
+  #Server
   net-172.21.2.0:
     ipam:
       config:

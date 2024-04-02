@@ -15,6 +15,28 @@ def getPassword():
     password = "password1"
     return password
 
+def getUserInput():
+    #Ask user for command type
+    command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
+    #Create Command
+    if command == "Exit":
+        return "Exit"
+    elif command == "Create":
+        taskName = input("What is the name of the task:")
+        return f"{command};{taskName}"
+    elif command == "Read":
+        taskID = input("What is the task you want to read (Leave -1 to read all tasks):")
+        return f"{command} {taskID};"
+    elif command == "Delete":
+        taskID = input("What is the id of the task to delete (Leave -1 to delete all tasks):")
+        return f"{command} {taskID};"
+    elif command == "Update":
+        taskID = input("What is the id of the task to update:")
+        taskName = input("What is the new name of the task:")
+        return f"{command} {taskID};{taskName}"
+
+
+
 if __name__ == "__main__":
 
     # Create a TCP socket
@@ -51,11 +73,15 @@ if __name__ == "__main__":
                 authenticated = True
                 # Loop for sending commands to the server
                 while True:
-                    clientInput = input("Type in a command (Type 'Exit' to quit):\n")
-                    if clientInput.lower() == "exit":
+                    message = getUserInput()
+
+                    print("Sending message:", message)
+                    client_socket.sendall(message.encode())
+                    if message == "Exit":
                         break
-                    print("Sending command:", clientInput)
-                    client_socket.sendall(clientInput.encode())
+                    response = client_socket.recv(1024).decode()
+                    print("Response: ", response)
+                    
             else:
                 print("Authentication failed")
 
@@ -63,5 +89,5 @@ if __name__ == "__main__":
             print(f"Error: {e}")
 
         finally:
-            client_socket.close()
+            pass
 
