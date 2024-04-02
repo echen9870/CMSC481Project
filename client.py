@@ -15,6 +15,7 @@ def getPassword():
     password = "password1"
     return password
 
+#TODO NEED TO IMPLEMENT INPUT CHECKING
 def getUserInput():
     #Ask user for command type
     command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
@@ -61,7 +62,6 @@ if __name__ == "__main__":
             hashMessage = hashlib.md5((challenge_token + getPassword()).encode()).hexdigest()
 
             # Send the response to the server
-            print("Sending response.....")
             client_socket.sendall(hashMessage.encode())
 
             # Receive the authentication result from the server
@@ -74,19 +74,21 @@ if __name__ == "__main__":
                 # Loop for sending commands to the server
                 while True:
                     message = getUserInput()
-
-                    print("Sending message:", message)
                     client_socket.sendall(message.encode())
                     if message == "Exit":
                         break
                     response = client_socket.recv(1024).decode()
-                    print("Response: ", response)
+                    print("Response\n")
+                    print(response)
+                    print("\n\n")
+
                     
             else:
                 print("Authentication failed")
 
         except Exception as e:
             print(f"Error: {e}")
+            break
 
         finally:
             pass

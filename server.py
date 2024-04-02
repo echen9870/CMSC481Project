@@ -1,3 +1,4 @@
+from collections import defaultdict
 import hashlib
 import random
 import socket
@@ -33,6 +34,15 @@ def signal_handler(sig, frame):
 # Register the signal handler
 signal.signal(signal.SIGINT, signal_handler)
 
+
+#taskList is a nested dictionary where the username is the first key and the taskID is the second key
+#taskList: {username : {taskID : value}}
+taskList = defaultdict(dict)
+
+#taskID is a dictionary which tells the application what taskID the newest task should be when it is created
+taskID = defaultdict(int)
+
+#Actual application running
 def application():
     while(True):
         #Gets the message
@@ -43,10 +53,9 @@ def application():
             break
         else:
             #Gets the message and checks if client has terminated it
-            terminated = interpret_message(message)
-
+            message = interpret_message(message)
             #Sends the response
-            send_response("Received")
+            send_response(message)
 
 #Accepts the message from the client, only decodes and returns the message
 def accept_message():
@@ -61,15 +70,32 @@ def accept_message():
 
 #Interprets the message, if the message is to Exit, returns True, which allows the connection to be terminated
 def interpret_message(message):
-    if not message:
-        return True
-    return False
+    userTaskList = taskList[user]
+    if message:
+        header, body = message.split(';')
+        #Create Command
+        if header == "Create":
+            #Gets an available taskID and increments taskID[user]
+            newTaskId = taskID[user]
+            taskID[user] += 1
+            #Appends the new task to the userTaskList
+            userTaskList[newTaskId] = body
+        #Read Command
+        if "Read" in header:
+            if header[-2:] == "-1":
+                return str(userTaskList)
+            elif int(header[-1]) not in userTaskList:
+                return f"There is not task with ID {header[-1]}"
+            else:
+                return str(userTaskList[int(header[-1])])
+    return "Received"
 
 #Generates a response for the server to send back to the client
 def send_response(message):
     try:
         conn.sendall(message.encode())
     except Exception as e:
+        conn.sendall("Error Occured".encode())
         print("Error sending response:", e)
 
 #Actively listens for incoming connection
@@ -81,6 +107,8 @@ while True:
     
     #Receives username from client
     user = conn.recv(1024).decode()
+
+    #TODO NEED TO CHECK IF THERE IS ALREADY AN EXISTING CONNECTION WITH USER
 
     #Sends the challenge token string
     token = generateChallenge()
