@@ -88,6 +88,22 @@ def interpret_message(message):
                 return f"There is not task with ID {header[-1]}"
             else:
                 return str(userTaskList[int(header[-1])])
+        if "Update" in header:
+            if int(header[-1]) not in userTaskList:
+                return f"There is not task with ID {header[-1]}"
+            else:
+                userTaskList[int(header[-1])] = body
+                return "Task has been updated"
+        if "Delete" in header:
+            if int(header[-2:] == "-1"):
+                userTaskList.clear()
+                return "All tasks have been deleted"
+            elif int(header[-1]) not in userTaskList:
+                return f"There is not task with ID {header[-1]}"
+            else:
+                del userTaskList[int(header[-1])]
+                return "Task has been deleted"
+
     return "Received"
 
 #Generates a response for the server to send back to the client
