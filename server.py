@@ -11,6 +11,9 @@ credentials = {
     "peterj1" : "password2"
 }
 
+#Active users logging in, this prevents multiple clients from authenticating as the same identifier at the same time
+activeUsers = set()
+
 #Creates our server address
 srvr_addr = ("0.0.0.0", 12345)
 
@@ -124,7 +127,7 @@ while True:
     #Receives username from client
     user = conn.recv(1024).decode()
 
-    #TODO NEED TO CHECK IF THERE IS ALREADY AN EXISTING CONNECTION WITH USER
+    #TODO NEED TO CHECK IF THERE IS ALREADY AN EXISTING CONNECTION WITH USER OR IF USERNAME IS VALID
 
     #Sends the challenge token string
     token = generateChallenge()
@@ -135,6 +138,9 @@ while True:
 
     #Validate authentication
     if user in credentials:
+        
+        if user in activeUsers:
+            conn.sendall(b'400 User already has an active session')
 
         password = credentials[user]
         hash_input = token + password
@@ -146,9 +152,9 @@ while True:
             print("Connection Terminated")
 
         else:
-            conn.sendall(b'400 FAIL')
+            conn.sendall(b'400 Incorrect Password')
     else:
-        conn.sendall(b'400 FAIL')
+        conn.sendall(b'400 Invalid User')
     
 
     

@@ -8,33 +8,39 @@ SERVER_PORT = 12345
 
 #Get username/password function can be later implemented so user can type in username/password
 def getUsername():
-    username = "echen9"
+    username = input("Enter username: ")
     return username
 
 def getPassword():
-    password = "password1"
+    password = input("Enter password: ")
     return password
 
 #TODO NEED TO IMPLEMENT INPUT CHECKING
 def getUserInput():
     #Ask user for command type
     command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
-    #Create Command
-    if command == "Exit":
-        return "Exit"
-    elif command == "Create":
-        taskName = input("What is the name of the task:")
-        return f"{command};{taskName}"
-    elif command == "Read":
-        taskID = input("What is the task you want to read (Leave -1 to read all tasks):")
-        return f"{command} {taskID};"
-    elif command == "Delete":
-        taskID = input("What is the id of the task to delete (Leave -1 to delete all tasks):")
-        return f"{command} {taskID};"
-    elif command == "Update":
-        taskID = input("What is the id of the task to update:")
-        taskName = input("What is the new name of the task:")
-        return f"{command} {taskID};{taskName}"
+    while True:
+
+        #Create Command
+        if command == "Exit":
+            return "Exit"
+        elif command == "Create":
+            taskName = input("What is the name of the task:")
+            return f"{command};{taskName}"
+        elif command == "Read":
+            taskID = input("What is the task you want to read (Leave -1 to read all tasks):")
+            return f"{command} {taskID};"
+        elif command == "Delete":
+            taskID = input("What is the id of the task to delete (Leave -1 to delete all tasks):")
+            return f"{command} {taskID};"
+        elif command == "Update":
+            taskID = input("What is the id of the task to update:")
+            taskName = input("What is the new name of the task:")
+            return f"{command} {taskID};{taskName}"
+        else:
+            print("Command is not valid, try again.")
+            command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
+
 
 
 
@@ -43,7 +49,7 @@ if __name__ == "__main__":
     # Create a TCP socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     authenticated = False
-
+    
     #Client is trying to authenticate
     while not authenticated:
         try:
@@ -84,7 +90,8 @@ if __name__ == "__main__":
 
                     
             else:
-                print("Authentication failed")
+                print(auth_result)
+                break
 
         except Exception as e:
             print(f"Error: {e}")
