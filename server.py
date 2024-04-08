@@ -53,87 +53,58 @@ taskList = defaultdict(dict)
 #taskID is a dictionary which tells the application what taskID the newest task should be when it is created
 taskID = defaultdict(int)
 
-#Actual application running
-def application(message):
-    if message == "Exit":
-        print("Terminating connection")
-        conn.close()
-        activeUsers.remove(user)
-    else:
-        #Gets the message and checks if client has terminated it
-        message = interpret_message(message)
-
-        #Sends the response
-        return send_response(message)
-
-#Accepts the message from the client, only decodes and returns the message
-def accept_message():
-    try:
-        message = conn.recv(1024).decode()
-        return message
-    except OSError as e:
-        print("Error receiving message:", e)
-        print("Terminating connection")
-        conn.close()
-        return None
-
 #Interprets the message, if the message is to Exit, returns True, which allows the connection to be terminated
 def interpret_message(message):
-    userTaskList = taskList[user]
     if message:
-        header, body = message.split(';')
-        #Create Command
-        if header == "Create":
-            #Gets an available taskID and increments taskID[user]
-            newTaskId = taskID[user]
-            taskID[user] += 1
-            #Appends the new task to the userTaskList
-            userTaskList[newTaskId] = body
-        #Read Command
-        if "Read" in header:
-            if header[-2:] == "-1":
-                return str(userTaskList)
-            elif int(header[-1]) not in userTaskList:
-                return f"There is not task with ID {header[-1]}"
-            else:
-                return str(userTaskList[int(header[-1])])
-        if "Update" in header:
-            if int(header[-1]) not in userTaskList:
-                return f"There is not task with ID {header[-1]}"
-            else:
-                userTaskList[int(header[-1])] = body
-                return "Task has been updated"
-        if "Delete" in header:
-            if int(header[-2:] == "-1"):
-                userTaskList.clear()
-                return "All tasks have been deleted"
-            elif int(header[-1]) not in userTaskList:
-                return f"There is not task with ID {header[-1]}"
-            else:
-                del userTaskList[int(header[-1])]
-                return "Task has been deleted"
-
+        try:
+            user, header, body = message.split(';')
+            userTaskList = taskList[user]
+            #Create Command
+            if header == "Create":
+                #Gets an available taskID and increments taskID[user]
+                newTaskId = taskID[user]
+                taskID[user] += 1
+                #Appends the new task to the userTaskList
+                userTaskList[newTaskId] = body
+            #Read Command
+            if "Read" in header:
+                if header[-2:] == "-1":
+                    return str(userTaskList)
+                elif int(header[-1]) not in userTaskList:
+                    return f"There is not task with ID {header[-1]}"
+                else:
+                    return str(userTaskList[int(header[-1])])
+            if "Update" in header:
+                if int(header[-1]) not in userTaskList:
+                    return f"There is not task with ID {header[-1]}"
+                else:
+                    userTaskList[int(header[-1])] = body
+                    return "Task has been updated"
+            if "Delete" in header:
+                if int(header[-2:] == "-1"):
+                    userTaskList.clear()
+                    return "All tasks have been deleted"
+                elif int(header[-1]) not in userTaskList:
+                    return f"There is not task with ID {header[-1]}"
+                else:
+                    del userTaskList[int(header[-1])]
+                    return "Task has been deleted"
+            if "Exit" in header:
+                activeUsers.remove(user)
+                return "You are logged out"
+        except:
+            return "Not a valid message"
     return "Received"
-
-#Generates a response for the server to send back to the client
-def send_response(message):
-    try:
-        conn.sendall(message.encode())
-    except Exception as e:
-        conn.sendall("Error Occured".encode())
-        print("Error sending response:", e)
-
-
 
 #Actively listens for incoming connection
 while True:
 
     #Get events
-    events = epoll.poll(2)
+    events = epoll.poll()
     #Iterate through each event
     for fileno, event in events:
         #Accepting new connections
-        if fileno == sock.fileno():
+        if fileno == sock.fileno(1):
 
             #Connection has been received
             conn, addr = sock.accept()
@@ -171,13 +142,14 @@ while True:
             conn = connections[fileno]
             data = conn.recv(1024).decode()
             if not data:
-                # If no data received, close the connection
+                # If no data received or connection closed, close the connection
                 epoll.unregister(fileno)
                 conn.close()
                 del connections[fileno]
             else:
-                response = application(data)
-                conn.sendall(response)
+                response = interpret_message(data)
+                conn.sendall(response.encode())
+
     
 
 

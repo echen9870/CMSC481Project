@@ -15,26 +15,26 @@ def getPassword():
     password = input("Enter password: ")
     return password
 
-def getUserInput():
+def getUserInput(username):
     command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
     while True:
 
         #Create Command
         if command == "Exit":
-            return "Exit"
+            return f"{username};Exit;Exit"
         elif command == "Create":
             taskName = input("What is the name of the task:")
-            return f"{command};{taskName}"
+            return f"{username};{command};{taskName}"
         elif command == "Read":
             taskID = input("What is the task you want to read (Leave -1 to read all tasks):")
-            return f"{command} {taskID};"
+            return f"{username};{command} {taskID};"
         elif command == "Delete":
             taskID = input("What is the id of the task to delete (Leave -1 to delete all tasks):")
-            return f"{command} {taskID};"
+            return f"{username};{command} {taskID};"
         elif command == "Update":
             taskID = input("What is the id of the task to update:")
             taskName = input("What is the new name of the task:")
-            return f"{command} {taskID};{taskName}"
+            return f"{username};{command} {taskID};{taskName}"
         else:
             print("Command is not valid, try again.")
             command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             # Connect to the server
             print("Attemptiong to connect to ", SERVER_ADDRESS," ", SERVER_PORT)
             client_socket.connect((SERVER_ADDRESS, SERVER_PORT))
-
+            
             # Send the username to identify the client
             username = getUsername()
             client_socket.sendall(f"{username}".encode())
@@ -74,14 +74,19 @@ if __name__ == "__main__":
                 authenticated = True
                 # Loop for sending commands to the server
                 while True:
-                    message = getUserInput()
-                    client_socket.sendall(message.encode())
-                    if message == "Exit":
+                    message = getUserInput(username)
+                    if "Exit" in message:
+                        client_socket.sendall(message.encode())
+                        response = client_socket.recv(1024).decode()
+                        print("Response\n", response)
+                        client_socket.close()
                         break
+                    client_socket.sendall(message.encode())
+                    
                     response = client_socket.recv(1024).decode()
                     print("Response\n")
                     print(response)
-                    print("\n\n")
+                    print("\n")
 
                     
             else:
