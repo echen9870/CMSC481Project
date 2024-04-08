@@ -4,6 +4,7 @@ import random
 import socket
 import signal
 import sys
+import select
 
 #Valid credentials
 credentials = {
@@ -13,6 +14,7 @@ credentials = {
 
 #Active users logging in, this prevents multiple clients from authenticating as the same identifier at the same time
 activeUsers = set()
+connections = {}
 
 #Creates our server address
 srvr_addr = ("0.0.0.0", 12345)
@@ -22,6 +24,12 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.bind(srvr_addr)
 sock.listen(1)
 print("Server is setup")
+
+#Creates epoll instnace
+epoll = select.epoll()
+
+# Register server socket to epoll
+epoll.register(sock.fileno(), select.EPOLLIN)
 
 #Generates the challenge string needed for authentication
 def generateChallenge():
@@ -46,19 +54,17 @@ taskList = defaultdict(dict)
 taskID = defaultdict(int)
 
 #Actual application running
-def application():
-    while(True):
-        #Gets the message
-        message = accept_message()
-        if message == "Exit":
-            print("Terminating connection")
-            conn.close()
-            break
-        else:
-            #Gets the message and checks if client has terminated it
-            message = interpret_message(message)
-            #Sends the response
-            send_response(message)
+def application(message):
+    if message == "Exit":
+        print("Terminating connection")
+        conn.close()
+        activeUsers.remove(user)
+    else:
+        #Gets the message and checks if client has terminated it
+        message = interpret_message(message)
+
+        #Sends the response
+        return send_response(message)
 
 #Accepts the message from the client, only decodes and returns the message
 def accept_message():
@@ -117,45 +123,61 @@ def send_response(message):
         conn.sendall("Error Occured".encode())
         print("Error sending response:", e)
 
+
+
 #Actively listens for incoming connection
 while True:
-  
-    #Connection has been received
-    conn, addr = sock.accept()
-    print('Connected: ',addr)
+
+    #Get events
+    events = epoll.poll(2)
+    #Iterate through each event
+    for fileno, event in events:
+        #Accepting new connections
+        if fileno == sock.fileno():
+
+            #Connection has been received
+            conn, addr = sock.accept()
+            print("Connected to:", addr)
+            #Authenticating connection
+            user = conn.recv(1024).decode()
+            token = generateChallenge()
+            conn.sendall(token.encode())
+            res = conn.recv(1024).decode()
+
+            if user in credentials:
+                if user in activeUsers:
+                    conn.sendall(b'400 User already has an active session')
+                    conn.close()
+                else:
+                    password = credentials[user]
+                    hash_input = token + password
+                    expected_hash = hashlib.md5(hash_input.encode()).hexdigest()
+
+                    if res == expected_hash:
+                        # Register connection and adds user to activeUser
+                        epoll.register(conn.fileno(), select.EPOLLIN)
+                        connections[conn.fileno()] = conn
+                        activeUsers.add(user)
+                        conn.sendall(b'200 SUCCESS')
+                    else:
+                        conn.sendall(b'400 Incorrect Password')
+                        conn.close()
+            else:
+                conn.sendall(b'400 Invalid User')
+                conn.close()
+
+        #Handling incoming data from existing connection
+        elif event & select.EPOLLIN:
+            conn = connections[fileno]
+            data = conn.recv(1024).decode()
+            if not data:
+                # If no data received, close the connection
+                epoll.unregister(fileno)
+                conn.close()
+                del connections[fileno]
+            else:
+                response = application(data)
+                conn.sendall(response)
     
-    #Receives username from client
-    user = conn.recv(1024).decode()
 
-    #TODO NEED TO CHECK IF THERE IS ALREADY AN EXISTING CONNECTION WITH USER OR IF USERNAME IS VALID
-
-    #Sends the challenge token string
-    token = generateChallenge()
-    conn.sendall(token.encode())
-
-    #Receives hash from client
-    res = conn.recv(1024).decode()
-
-    #Validate authentication
-    if user in credentials:
-        
-        if user in activeUsers:
-            conn.sendall(b'400 User already has an active session')
-
-        password = credentials[user]
-        hash_input = token + password
-        expected_hash = hashlib.md5(hash_input.encode()).hexdigest()
-
-        if res == expected_hash:
-            conn.sendall(b'200 SUCCESS')
-            application()
-            print("Connection Terminated")
-
-        else:
-            conn.sendall(b'400 Incorrect Password')
-    else:
-        conn.sendall(b'400 Invalid User')
-    
-
-    
 

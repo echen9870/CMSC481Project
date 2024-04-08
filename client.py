@@ -15,9 +15,7 @@ def getPassword():
     password = input("Enter password: ")
     return password
 
-#TODO NEED TO IMPLEMENT INPUT CHECKING
 def getUserInput():
-    #Ask user for command type
     command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
     while True:
 
@@ -40,9 +38,6 @@ def getUserInput():
         else:
             print("Command is not valid, try again.")
             command = input("Enter the type of command you would like to execute (Create, Read, Delete, Update) or type Exit to exit:")
-
-
-
 
 if __name__ == "__main__":
 
