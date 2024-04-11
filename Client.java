@@ -36,7 +36,6 @@ public class Client {
                 String hashMessage = challengeToken + password;
                 String responseHash = getMD5Hash(hashMessage);
                 
-                System.out.println(responseHash);
                 // Send the response to the server
                 out.println(responseHash);
 
