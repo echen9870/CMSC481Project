@@ -58,7 +58,6 @@ if __name__ == "__main__":
 
             # Receive the challenge token from the server
             challenge_token = client_socket.recv(1024).decode().strip()
-
             # Generate the response by appending the password to the challenge token and calculating the MD5 hash
             hashMessage = hashlib.md5((challenge_token + getPassword()).encode()).hexdigest()
 

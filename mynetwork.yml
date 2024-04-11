@@ -55,7 +55,7 @@ services:
                      "
 
   A:
-    image: rprustagi/ub22-tcp-udp
+    image: rprustagi/ub22-jre
     container_name: hA
     tty: true
     cap_add:

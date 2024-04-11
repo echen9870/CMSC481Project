@@ -34,7 +34,7 @@ epoll.register(sock.fileno(), select.EPOLLIN)
 #Generates the challenge string needed for authentication
 def generateChallenge():
     res = "".join([chr(random.randint(ord('a'), ord('z'))) for i in range(10)])
-    return res
+    return res + "\n"
 
 # Signal handler to catch Ctrl+C and close the server 
 def signal_handler(sig, frame):
@@ -104,50 +104,51 @@ while True:
     #Iterate through each event
     for fileno, event in events:
         #Accepting new connections
-        if fileno == sock.fileno(1):
+        if fileno == sock.fileno():
 
             #Connection has been received
             conn, addr = sock.accept()
             print("Connected to:", addr)
             #Authenticating connection
-            user = conn.recv(1024).decode()
+            user = conn.recv(1024).decode().strip()
             token = generateChallenge()
             conn.sendall(token.encode())
-            res = conn.recv(1024).decode()
+            res = conn.recv(1024).decode().strip()
 
             if user in credentials:
                 if user in activeUsers:
-                    conn.sendall(b'400 User already has an active session')
+                    conn.sendall(b'400 User already has an active session\n')
                     conn.close()
                 else:
                     password = credentials[user]
-                    hash_input = token + password
+                    hash_input = token.strip() + password    
                     expected_hash = hashlib.md5(hash_input.encode()).hexdigest()
 
+                    
                     if res == expected_hash:
                         # Register connection and adds user to activeUser
                         epoll.register(conn.fileno(), select.EPOLLIN)
                         connections[conn.fileno()] = conn
                         activeUsers.add(user)
-                        conn.sendall(b'200 SUCCESS')
+                        conn.sendall(b'200 SUCCESS\n')
                     else:
-                        conn.sendall(b'400 Incorrect Password')
+                        conn.sendall(b'400 Incorrect Password\n')
                         conn.close()
             else:
-                conn.sendall(b'400 Invalid User')
+                conn.sendall(b'400 Invalid User\n')
                 conn.close()
 
         #Handling incoming data from existing connection
         elif event & select.EPOLLIN:
             conn = connections[fileno]
-            data = conn.recv(1024).decode()
+            data = conn.recv(1024).decode().strip()
             if not data:
                 # If no data received or connection closed, close the connection
                 epoll.unregister(fileno)
                 conn.close()
                 del connections[fileno]
             else:
-                response = interpret_message(data)
+                response = interpret_message(data) + "\n"
                 conn.sendall(response.encode())
 
     
