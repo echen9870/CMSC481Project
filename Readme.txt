@@ -35,7 +35,7 @@ Message Formats
 - Client Side Messages are of format username;command;text
 - Usernames are used in order to identify which task list has to be modified
 - Command is used to identify the type of instruction to perform
-- text is only used when there Creating or Updating Commands
+- The text is only used when creating or updating commands
 - Inputs parsing are handled on the client side, so the server can expect the commands sent by the client to be good
 - There is no TCP streaming capabilities
 - Server Side Responses are just basic String Messages
