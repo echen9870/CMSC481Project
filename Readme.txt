@@ -1,6 +1,6 @@
 Members:
 Eric Chen, CS24819
-Peter Jacquet, 
+Peter Jacquet, ZL30817
 
 Time to Complete: 4 - 5 Weeks
 
